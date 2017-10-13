@@ -104,6 +104,13 @@ typedef struct strtab {
 	unsigned long  size;
 } strtab;
 
+/* An architecture may attach a 'pvt' struct to a bfd and it will
+ * be released by the 'free' method when the bfd is closed.
+ */
+struct pmbfd_arch_pvt {
+	void (*free)(struct pmbfd_arch_pvt *);
+};
+
 struct bfd {
 	Elf_Stream               s;
 	Elf_Ehdr                 ehdr;
@@ -128,6 +135,7 @@ struct bfd {
 #endif
 	struct symchunk	         *symmemh;
 	struct symchunk          *symmemt;
+	struct pmbfd_arch_pvt    *arch_pvt;
 };
 
 #define BFD_ELFCLASS(abfd)  ((abfd)->ehdr.e_ident[EI_CLASS])

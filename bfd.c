@@ -701,6 +701,10 @@ uint32_t e_type;
 
 static void bfd_cleanup(bfd *abfd, int noclose)
 {
+	if ( abfd->arch_pvt ) {
+		abfd->arch_pvt->free( abfd->arch_pvt );
+		abfd->arch_pvt = 0;
+	}
 
 	if ( abfd->s ) {
 		pmelf_delstrm(abfd->s, noclose);
