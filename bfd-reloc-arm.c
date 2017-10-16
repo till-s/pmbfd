@@ -50,9 +50,42 @@
 #define TARGET2_REL
 
 int
-pmbfd_make_veneer(asymbol *psym, uint8_t **text_mem)
+pmbfd_make_veneer(bfd_vma symval, uint16_t symflags, uint8_t **text_mem)
 {
-	return 0;
+const uint16_t bx_pc = 0x4778; 
+const uint16_t nop   = 0x46c0;
+uint32_t       b_arm;
+int32_t        off;
+uint8_t       *p;
+
+	/* Make Thumb->ARM veneer */
+
+	if ( symval & 1 )
+		return 0;
+
+	if ( text_mem ) {
+		p = (uint8_t*) align_power( (uintptr_t)*text_mem, 2 );
+
+		off = (int32_t)symval - (int32_t)p + 4;
+		if ( off > (int32_t)0x01ffffff || off < (int32_t)0xfe000000 ) {
+			/* veneer cannot reach target */
+			return 0;
+		}
+
+		if ( off & 2 ) {
+			/* veneer target misaligned */
+			return 0;
+		}
+
+		memcpy(p + 0, &bx_pc, sizeof(bx_pc));
+		memcpy(p + 2, &nop,   sizeof(nop  ));
+
+		b_arm = 0xea000000 | ( (off>>2) & 0x00ffffff);
+
+		memcpy(p + 4, &b_arm, sizeof(b_arm));
+	}
+	return 8;
+
 }
 
 
@@ -225,6 +258,17 @@ int            fromThumb = -1, toThumb = -1;
 				if ( (toThumb = !!(val & 1) ) ) {
 					val        &= 0xfffffffe;
 					t           = 1;
+				} else {
+					if ( R_ARM_THM_JUMP24 == type || (val & 2) ) {
+						/* requires a veneer */
+						if ( veneer_info ) {
+							val = ((int32_t)*veneer_info) & 0xfffffffe;
+							t   = 1;
+						} else {
+							fprintf(stderr,"No veneer found; cannot relocate thumb->ARM\n");
+							return bfd_reloc_notsupported;
+						}
+					}
 				}
 				break;
 		}
@@ -288,20 +332,8 @@ int            fromThumb = -1, toThumb = -1;
 
 			nval |= (oval & 0xd000f800) | i1 | i2;
 
-			if ( ! toThumb ) {
-				if ( R_ARM_THM_JUMP24 == type ) {
-					fprintf(stderr,"R_ARM_THM_JUMP24 -- changing arm <-> thumb not yet supported\n");
-					/* requires a veneer */
-					return bfd_reloc_notsupported;
-				} else {
-					if ( nval & 0x10000 ) {
-						fprintf(stderr,"R_ARM_THM_CALL -- 'H' not 0 when converting to BLX\n");
-	fprintf(stderr,"Relocating val: 0x%04"PRIx32", min: 0x%04"PRIx32", max: 0x%04"PRIx32", addend: 0x%04"PRIx32", pc: 0x%04"PRIx32", original val: 0x%04"PRIx32", sym: 0x%08lx (%s)\n",
-		val, min, max, addend, pc, oval, symval, bfd_asymbol_name(psym));
-						return bfd_reloc_notsupported;
-					}
-					nval &= ~(1<<(12+16));
-				}
+			if ( ! toThumb && R_ARM_THM_CALL == type ) {
+				nval &= ~(1<<(12+16));
 			}
 
 			break;

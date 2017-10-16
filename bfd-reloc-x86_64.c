@@ -126,7 +126,7 @@ pmbfd_reloc_get_name(bfd *abfd, pmbfd_arelent *r)
 }
 
 int
-pmbfd_make_veneer(asymbol *sym, uint8_t **text_mem)
+pmbfd_make_veneer(bfd_vma symval,  uint16_t symflags, uint8_t **text_mem)
 {
 	return 0;
 }
