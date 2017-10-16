@@ -62,16 +62,15 @@ bfd_reloc_status_type
 pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *r, asymbol *psym, asection *input_section)
 {
 Elf32_Word     pc;
-int32_t        val;
+int32_t        val, symval;
 uint32_t       oval,nval;
 uint8_t        type  = ELF32_R_TYPE(r->rel32.r_info);
 uint32_t       offset;
 uint32_t       addend = 0; /* keep compiler happy */
-uint32_t       s,i1,i2;
-uint32_t       t;
-int            t_from_func, pcrel;
+uint32_t       s,i1,i2,t;
+int            pcrel;
 int32_t        max, min;
-int            use_t;
+int            fromThumb = -1, toThumb = -1;
 
 	if ( R_ARM_NONE == type ) {
 		/* No-op */
@@ -137,6 +136,7 @@ int            use_t;
 
 			case R_ARM_THM_JUMP24:
 			case R_ARM_THM_CALL:
+				fromThumb = 1;
 				/* extract immediate operand */
 				s  =  (addend & (1<<10)) ? 0xff000000 : 0;
 				i1 = ~(addend ^ s); /* 's' mask includes j1 and j2 */
@@ -148,6 +148,7 @@ int            use_t;
 
 			case R_ARM_THM_MOVW_ABS_NC:
 			case R_ARM_THM_MOVT_ABS:
+				fromThumb = 1;
 				addend =   ((addend & 0xf)        << (12 + 16)   ) 
 					| ((addend & (1<<10))    << (11-10 + 16))
 					| ((addend & 0x70000000) >> (12 - 8)    )
@@ -157,15 +158,12 @@ int            use_t;
 					addend >>= 16;
 				}
 				break;
-
-
 		}
 	}
 
 	max   = 0;
 	min   = 0;
 	pcrel = 0;
-	use_t = 1;
 
 	switch ( type ) {
 		case R_ARM_PREL31:
@@ -189,10 +187,6 @@ int            use_t;
 			pcrel = 1;
 		break;
 
-		case R_ARM_THM_MOVT_ABS:
-			use_t = 0;
-		break;
-
 		default:
 		break;
 	}
@@ -202,39 +196,59 @@ int            use_t;
 
 	/* compute value */
 
-	val = (int32_t)bfd_asymbol_value(psym);
+	symval = val = (int32_t)bfd_asymbol_value(psym);
+
+	t   = 0;
 
 	/* strip thumb bit from symbol value */
-	if ( use_t ) {
-		if ( (t_from_func = (BSF_FUNCTION & psym->flags)) && (val & 1) ) {
-			val        &= 0xfffffffe;
-			t           = 1;
-		} else {
-			t           = 0;
+	if ( fromThumb >= 0 ) {
+		/* The built-in symbol table cannot always get the type of a symbol right
+		 * (because 'nm' provides only a single-letter code; e.g., a weak function is
+		 * reported just as 'W').
+		 * Thus, if we are relocating a jump we assume that we are indeed targeting
+		 * a function...
+		 */
+		switch ( type ) {
+			default:
+				if ( ! (BSF_FUNCTION & psym->flags) )
+					break;
+				/* else fall through */
+			case R_ARM_THM_CALL:
+			case R_ARM_THM_JUMP24:
+				if ( (toThumb = !!(val & 1) ) ) {
+					val        &= 0xfffffffe;
+					t           = 1;
+				}
+				break;
 		}
-	} else {
-		t_from_func = 0;
-		t           = 0;
+		if ( (addend & 1) ) {
+			/* Can this happen ? */
+			fprintf(stderr,"Unexpected odd addend\n");
+			fprintf(stderr,"Relocating val: 0x%04"PRIx32", min: 0x%04"PRIx32", max: 0x%04"PRIx32", addend: 0x%04"PRIx32", pc: 0x%04"PRIx32", sym: 0x%08lx\n",
+				val, min, max, addend, pc, symval);
+			return bfd_reloc_notsupported;
+		}
 	}
 
 	/* if we have a 't' from the symbol then let it override one that might
 	 * be in the addend. Otherwise, preserve addend.
 	 */
-	if ( t_from_func )
-		addend &= 0xfffffffe;
 	val = (val + addend);
 
 	if ( pcrel )
 		val -= pc;
 
-	if ( max > min && ( (int32_t)val > max || (int32_t)val < min ) )
+	if ( max > min && ( (int32_t)val > max || (int32_t)val < min ) ) {
+		fprintf(stderr,"Relocating val: 0x%04"PRIx32", min: 0x%04"PRIx32", max: 0x%04"PRIx32", addend: 0x%04"PRIx32", pc: 0x%04"PRIx32", sym: 0x%08lx\n",
+			val, min, max, addend, pc, symval);
 		return bfd_reloc_overflow;
+	}
 
 	val |= t;
 
 #if (DEBUG & DEBUG_RELOC)
-	fprintf(stderr,"Relocating val: 0x%04"PRIx32", min: 0x%04"PRIx32", max: 0x%04"PRIx32", addend: 0x%04"PRIx32", pc: 0x%04"PRIx32", sym: 0x%08lx\n",
-		val, min, max, addend, pc, bfd_asymbol_value(psym));
+	fprintf(stderr,"Relocating val: 0x%04"PRIx32", min: 0x%04"PRIx32", max: 0x%04"PRIx32", addend: 0x%04"PRIx32", pc: 0x%04"PRIx32", original val: 0x%04"PRIx32", sym: 0x%08lx\n",
+		val, min, max, addend, pc, oval, symval);
 #endif
 
 	/* patch back */
@@ -254,7 +268,10 @@ int            use_t;
 			break;
 
 		case R_ARM_THM_JUMP24:
+			/* B.W */
 		case R_ARM_THM_CALL:
+
+			/* BL <imm> / BLX <imm> */
 
 			nval  =  (val & 0x000ffe) << (16 - 1);
 			nval |=  (val & 0x3ff000) >> (12 - 0);
@@ -263,6 +280,22 @@ int            use_t;
 			i2    =  ((~val ^ (val >> 2)) & (1<<22)) << (11+16 - 22);
 
 			nval |= (oval & 0xd000f800) | i1 | i2;
+
+			if ( ! toThumb ) {
+				if ( R_ARM_THM_JUMP24 == type ) {
+					fprintf(stderr,"R_ARM_THM_JUMP24 -- changing arm <-> thumb not yet supported\n");
+					/* requires a veneer */
+					return bfd_reloc_notsupported;
+				} else {
+					if ( nval & 0x10000 ) {
+						fprintf(stderr,"R_ARM_THM_CALL -- 'H' not 0 when converting to BLX\n");
+	fprintf(stderr,"Relocating val: 0x%04"PRIx32", min: 0x%04"PRIx32", max: 0x%04"PRIx32", addend: 0x%04"PRIx32", pc: 0x%04"PRIx32", original val: 0x%04"PRIx32", sym: 0x%08lx (%s)\n",
+		val, min, max, addend, pc, oval, symval, bfd_asymbol_name(psym));
+						return bfd_reloc_notsupported;
+					}
+					nval &= ~(1<<(12+16));
+				}
+			}
 
 			break;
 
