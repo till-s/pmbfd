@@ -48,7 +48,7 @@
 #include "pmbfdP.h"
 
 bfd_reloc_status_type
-pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *r, asymbol *psym, asection *input_section)
+pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *r, asymbol *psym, asection *input_section, void **veneer_info)
 {
 Elf32_Word     pc    = bfd_get_section_vma(abfd, input_section);
 Elf32_Rela     *rela = &r->rela32;
@@ -139,4 +139,10 @@ const char *
 pmbfd_reloc_get_name(bfd *abfd, pmbfd_arelent *r)
 {
 	return pmelf_m68k_rel_name(&r->rela32);
+}
+
+int
+pmbfd_make_veneer(asymbol *sym, uint8_t **text_mem)
+{
+	return 0;
 }

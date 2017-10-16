@@ -49,6 +49,13 @@
 
 #define TARGET2_REL
 
+int
+pmbfd_make_veneer(asymbol *psym, uint8_t **text_mem)
+{
+	return 0;
+}
+
+
 /* ARM relocs used by rtems-4.12 so far:
 	R_ARM_ABS32
 	R_ARM_PREL31
@@ -59,7 +66,7 @@
 */
 
 bfd_reloc_status_type
-pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *r, asymbol *psym, asection *input_section)
+pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *r, asymbol *psym, asection *input_section, void **veneer_info)
 {
 Elf32_Word     pc;
 int32_t        val, symval;

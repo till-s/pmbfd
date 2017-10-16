@@ -488,9 +488,11 @@ pmbfd_get_relent_type(bfd *abfd, pmbfd_areltab *tab);
 pmbfd_arelent *
 pmbfd_reloc_next(bfd *abfd, pmbfd_areltab *tab, pmbfd_arelent *prev);
 
+int
+pmbfd_make_veneer(asymbol *sym, uint8_t **text_mem);
 
 bfd_reloc_status_type
-pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *reloc, asymbol *sym, asection *input_section);
+pmbfd_perform_relocation(bfd *abfd, pmbfd_relent_t rtype, pmbfd_arelent *reloc, asymbol *sym, asection *input_section, void **veneer_info);
 
 int
 pmbfd_reloc_get_sym_idx(bfd *abfd, pmbfd_arelent *reloc);
