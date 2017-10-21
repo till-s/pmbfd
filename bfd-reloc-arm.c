@@ -66,7 +66,7 @@ uint8_t       *p;
 	if ( text_mem ) {
 		p = (uint8_t*) align_power( (uintptr_t)*text_mem, 2 );
 
-		off = (int32_t)symval - (int32_t)p + 4;
+		off = (int32_t)symval - ((int32_t)p + 8 + 4);
 		if ( off > (int32_t)0x01ffffff || off < (int32_t)0xfe000000 ) {
 			/* veneer cannot reach target */
 			return 0;
@@ -259,16 +259,22 @@ int            fromThumb = -1, toThumb = -1;
 					val        &= 0xfffffffe;
 					t           = 1;
 				} else {
-					if ( R_ARM_THM_JUMP24 == type || (val & 2) ) {
+					int32_t blx_offset = val + addend - pc;
+					if ( R_ARM_THM_JUMP24 == type || (blx_offset & 2) ) {
 						/* requires a veneer */
 						if ( veneer_info ) {
-							val = ((int32_t)*veneer_info) & 0xfffffffe;
-							t   = 1;
+							val  = ((int32_t)*veneer_info) & 0xfffffffe;
+							/* change to/preserve b.w instruction */
+							t    = 1;
 						} else {
 							fprintf(stderr,"No veneer found; cannot relocate thumb->ARM\n");
 							return bfd_reloc_notsupported;
 						}
+					} else {
+						/* ! toThumb && R_ARM_THM_CALL == type */
+						oval &= ~(1<<(12+16));
 					}
+
 				}
 				break;
 		}
@@ -331,10 +337,6 @@ int            fromThumb = -1, toThumb = -1;
 			i2    =  ((~val ^ (val >> 2)) & (1<<22)) << (11+16 - 22);
 
 			nval |= (oval & 0xd000f800) | i1 | i2;
-
-			if ( ! toThumb && R_ARM_THM_CALL == type ) {
-				nval &= ~(1<<(12+16));
-			}
 
 			break;
 
