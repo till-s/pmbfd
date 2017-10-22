@@ -1,4 +1,3 @@
-/*$Id$*/
 
 /* support for libopcodes (BFD disassembler) */
 
