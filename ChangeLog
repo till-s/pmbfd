@@ -1,3 +1,8 @@
+ 20171021 (T.S.):
+  - bfd-reloc-arm.c: FIX incorrect offset calculation (pc is +8 in ARM mode)
+ 20171016 (T.S.):
+  - reworked pmbfd_make_veneer()
+  - Added pmbfd_make_veneer() entry point
  20160621 (T.S.):
  - bfd-reloc-arm.c: reworked THM_CALL/THM_JUMP24; no veneer support, though.
  20160621 (T.S.):
