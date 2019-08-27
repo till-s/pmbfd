@@ -1,3 +1,7 @@
+ 20190826 (T.S.):
+ - att-gnu-powerpc.c, attpbfasmatch.c, attrP.h, attset.c, getwrd.c, pmelf.h:
+   Support 'relaxed' mode of attribute checking. When comparing attribute sets
+   'A' and 'B' then relaxed mode accepts a tag present in A but missing from B.
  20091202 (T.S.):
  - att-gnu-powerpc.c: BUGFIX: scanning for ABI tags would access
    bad memory if tag was not present in object file. 
