@@ -1337,6 +1337,15 @@ pmelf_print_attribute_set(Pmelf_attribute_set *pa, FILE *f);
 int
 pmelf_match_attribute_set(Pmelf_attribute_set *pa, Pmelf_attribute_set *pb);
 
+/* Like pmelf_match_attribute_set(): requires an exact match of all attributes in 'a' and 'b' */
+#define PMELF_MATCH_ATTRIBUTES_STRICT 0
+/* If a tag is present in 'a' but absent in 'b' then accept; if tag is present in both then
+ * the values must match.
+ */
+#define PMELF_MATCH_ATTRIBUTES_RELAXD 1
+int
+pmelf_match_attribute_set_adv(Pmelf_attribute_set *pa, Pmelf_attribute_set *pb, int mode);
+
 /* Write headers to a stream */
 int
 pmelf_putehdr32(Elf_Stream s, Elf32_Ehdr *pehdr);

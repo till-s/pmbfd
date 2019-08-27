@@ -262,7 +262,7 @@ const char *str;
  * (main reason for this whole facility to exist...)
  */
 static int
-pmelf_ppc_file_attributes_match(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl)
+pmelf_ppc_file_attributes_match(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl, int mode)
 {
 int         tag;
 int         va,vb;
@@ -312,7 +312,7 @@ int         va,vb;
 			return -1;
 		}
 	}
-	return pmelf_pub_file_attributes_match_compat(patbl,pbtbl);
+	return pmelf_pub_file_attributes_match_compat_adv(patbl,pbtbl,mode);
 }
 
 /* PPC-SYSV-gnu 'vendor' table */
@@ -376,7 +376,7 @@ static Pmelf_attribute_vendor tst_vendor = {
 	next:	                     0,
 	name:	                     "gnu",
 	file_attributes_read:        pmelf_pub_file_attributes_read,
-	file_attributes_match:       pmelf_pub_file_attributes_match_compat,
+	file_attributes_match:       pmelf_pub_file_attributes_match_compat_adv,
 	file_attributes_destroy:     pmelf_pub_file_attributes_destroy,
 	file_attributes_tag_type:    pmelf_test_attribute_tag_t,
 	file_attributes_tag_name:    pmelf_test_attribute_tag_n,

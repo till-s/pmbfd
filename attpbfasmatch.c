@@ -130,12 +130,15 @@ Elf32_Word            flg;
  * RETURN: zero if no incompatibility was found, nonzero otherwise.
  */
 int
-pmelf_pub_file_attributes_match_compat(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl)
+pmelf_pub_file_attributes_match_compat_adv(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl, int mode)
 {
 Pmelf_attribute_list *ela, *elb;
 int                   fla, flb;
 const char            *nma = patbl->aset->obj_name;
 const char            *nmb = pbtbl->aset->obj_name;
+
+	if ( ! pbtbl && (PMELF_MATCH_ATTRIBUTES_RELAXD == mode) )
+		return 0;
 
 	/* check that no non-gnu compatibility is requested */
 	if ( patbl && (ela = find_compat(patbl)) && (fla = filter_nongnu(nma, ela)) < 0 ) {
@@ -150,4 +153,10 @@ const char            *nmb = pbtbl->aset->obj_name;
 		return -1;
 
 	return 0;
+}
+
+int
+pmelf_pub_file_attributes_match_compat(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl)
+{
+	return pmelf_pub_file_attributes_match_compat_adv(patbl, pbtbl, PMELF_MATCH_ATTRIBUTES_STRICT);
 }

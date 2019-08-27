@@ -158,7 +158,7 @@ struct Pmelf_attribute_vendor_ {
 									* RETURN: 0 if no incompatibility is found, negative value if the sets
 									*         describe incompatible features.
 									*/
-	int                            (*file_attributes_match)(Pmelf_attribute_tbl *patbl,  Pmelf_attribute_tbl *pbtbl);
+	int                            (*file_attributes_match)(Pmelf_attribute_tbl *patbl,  Pmelf_attribute_tbl *pbtbl, int mode);
 	                               /* Return representation type of value associated with 'tag'
 									* (If attributes are not of a 'public' representation then
 									* meaning of the return values are private to this
@@ -265,6 +265,9 @@ pmelf_pub_file_attributes_destroy(Pmelf_attribute_tbl *patbl);
  */
 int
 pmelf_pub_file_attributes_match_compat(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl);
+
+int
+pmelf_pub_file_attributes_match_compat_adv(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl, int mode);
 
 /*
  * Print an attribute table in 'public' representation (i.e, one that

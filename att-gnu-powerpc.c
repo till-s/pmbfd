@@ -281,7 +281,7 @@ const char *str;
  * (main reason for this whole facility to exist...)
  */
 static int
-pmelf_ppc_file_attributes_match(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl)
+pmelf_ppc_file_attributes_match(Pmelf_attribute_tbl *patbl, Pmelf_attribute_tbl *pbtbl, int mode)
 {
 int             tag;
 int             va=0,vb=0;
@@ -290,9 +290,14 @@ int             i;
 const char      *tagnm;
 Pmelf_attribute *a;
 
-	if ( !patbl && !pbtbl )
-		return 0;
-	if ( ! (patbl && pbtbl) ) {
+	if ( ! patbl ) {
+		return ! pbtbl ? 0 : -1;
+	}
+
+	if ( ! pbtbl ) {
+		if ( PMELF_MATCH_ATTRIBUTES_RELAXD == mode ) {
+			return 0;
+		}
 		PMELF_PRINTF( pmelf_err, PMELF_PRE"pmelf_ppc_file_attributes_match(): only one object has attributes\n");
 		return -1;
 	}
@@ -324,6 +329,9 @@ Pmelf_attribute *a;
 			PMELF_PRINTF( pmelf_err, PMELF_PRE"pmelf_ppc_file_attributes_match(): Tag %s present in %s but not in %s (incompatibility due to different compilers used?)\n", tagnm, pbtbl->aset->obj_name, patbl->aset->obj_name);
 			return -1;
 		} else if ( vbv ) {
+			if ( PMELF_MATCH_ATTRIBUTES_RELAXD == mode ) {
+				return 0;
+			}
 			PMELF_PRINTF( pmelf_err, PMELF_PRE"pmelf_ppc_file_attributes_match(): Tag %s present in %s but not in %s (incompatibility due to different compilers used?)\n", tagnm, patbl->aset->obj_name, pbtbl->aset->obj_name);
 			return -1;
 		}
