@@ -322,19 +322,28 @@ unsigned rval = 0;
  * NOTE:    it is legal to pass 'pa==NULL', 'pb==NULL' in which case
  *          the routine returns 0 (SUCCESS).
  */
+
 int
 pmelf_match_attribute_set(Pmelf_attribute_set *pa, Pmelf_attribute_set *pb)
+{
+	return pmelf_match_attribute_set_adv(pa, pb, PMELF_MATCH_ATTRIBUTES_STRICT);
+}
+
+int
+pmelf_match_attribute_set_adv(Pmelf_attribute_set *pa, Pmelf_attribute_set *pb, int mode)
 {
 int                    i,j;
 Pmelf_attribute_vendor *pv;
 int                    vendor_set_a, vendor_set_b;
 int                    rval = 0;
 
-	if ( !pa && !pb )
-		return 0;
+	if ( ! pa ) {
+		return !pb ? 0 : -1;
+	}
 
-	if ( ! (pa && pb) )
-		return -1;
+	if ( ! pb ) {
+		return PMELF_MATCH_ATTRIBUTES_RELAXD == mode ? 0 : -1;
+	}
 
 	if ( (vendor_set_a = vset(pa)) < 0 ) {
 		return -1;
@@ -358,7 +367,7 @@ int                    rval = 0;
 							PMELF_PRINTF(pmelf_err, PMELF_PRE"pmelf_match_attribute_set(): vendor %s has no 'match' handler\n", pv->name);
 							return -1;
 						}
-						rval |= pv->file_attributes_match( pa->attributes[i].file_attributes, pb->attributes[j].file_attributes );
+						rval |= pv->file_attributes_match( pa->attributes[i].file_attributes, pb->attributes[j].file_attributes, mode );
 					}
 				}
 			}
