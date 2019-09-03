@@ -1,5 +1,4 @@
 #include "pmelf.h"
-/* $Id$ */
 
 /* Empty stubs so that applications referring to 64-bit
  * routines link even if pmelf was only configured to
